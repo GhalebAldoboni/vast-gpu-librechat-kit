@@ -1,6 +1,6 @@
 # Vast GPU LibreChat Kit
 
-Use a rented Vast.ai GPU for local LibreChat app.
+Use a rented Vast.ai GPU as the brain behind a local LibreChat app.
 
 ## The Problem
 
@@ -33,6 +33,7 @@ Switching GPUs later becomes simple: change the Vast host and SSH port. Switchin
 - A lightweight Bing RSS search proxy compatible with LibreChat web search.
 - A local MongoDB launcher for non-Docker local LibreChat setups.
 - macOS LaunchAgent examples for running the local services.
+- A reusable agent skill under `agent-skills/` for assistants that support `SKILL.md` workflows.
 
 ## Architecture
 
