@@ -1,6 +1,6 @@
 # Vast GPU LibreChat Kit
 
-Use a rented Vast.ai GPU as the brain behind a local LibreChat app.
+Use a rented Vast.ai GPU for local LibreChat app.
 
 ## The Problem
 
