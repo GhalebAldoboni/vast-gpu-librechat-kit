@@ -1,0 +1,33 @@
+version: 1.2.8
+
+cache: true
+
+interface:
+  customWelcome: 'LibreChat connected to your Vast.ai GPU.'
+  endpointsMenu: true
+  modelSelect: true
+  webSearch: true
+
+endpoints:
+  custom:
+    - name: 'Vast GPU'
+      apiKey: '${VAST_GPU_API_KEY}'
+      baseURL: '${VAST_GPU_BASE_URL}'
+      models:
+        default:
+          - 'Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF:Q4_K_M'
+        fetch: false
+      titleConvo: false
+      summarize: false
+      modelDisplayLabel: 'Vast GPU'
+      dropParams:
+        - 'stop'
+        - 'user'
+        - 'frequency_penalty'
+        - 'presence_penalty'
+
+webSearch:
+  searchProvider: searxng
+  searxngInstanceUrl: '${SEARXNG_INSTANCE_URL}'
+  rerankerType: none
+  safeSearch: 1
