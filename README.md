@@ -1,92 +1,77 @@
 # Vast GPU LibreChat Kit
 
-Use a rented Vast.ai GPU as the brain behind a local LibreChat app.
+Run LibreChat locally while a rented Vast.ai GPU runs your GGUF model.
 
-## The Problem
+This is for people who want the comfort of a ChatGPT-like interface without giving up control of the model, GPU, or runtime.
 
-LibreChat is a great ChatGPT-style interface, but it does not natively manage remote SSH GPUs. If your model is running on a Vast.ai machine, you still have to solve the messy parts yourself:
+## Why This Exists
 
-- starting `llama.cpp` on the GPU
-- exposing it safely without opening the model server to the public internet
-- mapping LibreChat to the remote model
-- keeping the same local chat URL when you switch GPUs
-- changing GGUF models without rebuilding the whole app setup
+LibreChat already gives you the chat UI, accounts, conversations, presets, web search hooks, and a familiar app experience.
 
-## The Solution
+But LibreChat does not natively manage rented SSH GPUs. If your model lives on a Vast.ai machine, you still have to handle the awkward layer yourself:
 
-This repo turns the setup into a repeatable pattern:
+- start `llama.cpp` on the GPU
+- keep the model server private
+- expose an OpenAI-compatible endpoint to LibreChat
+- reconnect when Vast gives you a different host or SSH port
+- swap GGUF models without rebuilding your whole chat setup
 
-```text
-LibreChat -> local OpenAI-compatible URL -> SSH tunnel -> Vast.ai GPU -> llama.cpp
-```
+This kit packages that missing layer.
 
-LibreChat stays local. The model runs on the rented GPU. The connection happens through an SSH tunnel, so the remote `llama-server` can stay bound to `127.0.0.1` instead of being exposed publicly.
+## The Idea
 
-Switching GPUs later becomes simple: change the Vast host and SSH port. Switching models becomes simple: change the Hugging Face GGUF reference and the model name in `librechat.yaml`.
-
-## What You Get
-
-- LibreChat custom endpoint config for a Vast.ai GPU backend.
-- A reusable SSH tunnel script.
-- A remote `llama-server` startup script.
-- A sanitized `.env.example`.
-- A lightweight Bing RSS search proxy compatible with LibreChat web search.
-- A local MongoDB launcher for non-Docker local LibreChat setups.
-- macOS LaunchAgent examples for running the local services.
-- A reusable agent skill under `agent-skills/` for assistants that support `SKILL.md` workflows.
-
-## Architecture
+Keep LibreChat local. Keep the GPU private. Connect them with SSH.
 
 ```text
 Browser
-  |
-  v
-LibreChat on localhost:3080
-  |
-  v
-OpenAI-compatible endpoint on localhost:8080/v1
-  |
-  v
-SSH tunnel
-  |
-  v
-llama.cpp server on Vast.ai localhost:18080
-  |
-  v
-GGUF model on GPU
+  -> LibreChat on localhost:3080
+  -> OpenAI-compatible endpoint on localhost:8080/v1
+  -> SSH tunnel
+  -> llama.cpp on Vast.ai localhost:18080
+  -> GGUF model on GPU
 ```
+
+The remote `llama-server` can stay bound to `127.0.0.1`, so it is not exposed to the public internet.
+
+## What Is Included
+
+- `config/librechat.yaml` - LibreChat custom endpoint config.
+- `config/.env.example` - safe environment template.
+- `scripts/start-tunnel-template.sh` - local SSH tunnel helper.
+- `scripts/remote-llama-server-template.sh` - remote `llama-server` helper.
+- `scripts/start-local-mongo.cjs` - local MongoDB launcher for non-Docker setups.
+- `scripts/bing-searxng-proxy.mjs` - tiny SearXNG-compatible Bing RSS proxy for LibreChat web search.
+- `launchagents/` - macOS LaunchAgent examples.
+- `agent-skills/` - reusable `SKILL.md` workflow for compatible coding assistants.
 
 ## Requirements
 
-- A local LibreChat checkout.
+- LibreChat installed locally.
 - Node.js installed locally.
-- A Vast.ai instance reachable by SSH.
+- A Vast.ai GPU instance with SSH access.
 - `llama.cpp` built on the GPU server.
-- A GGUF model available through Hugging Face or local GPU storage.
+- A GGUF model available from Hugging Face or local GPU storage.
 
-## 1. Configure LibreChat
+## Quick Start
 
-Copy the LibreChat config:
+### 1. Configure LibreChat
+
+Copy the config:
 
 ```bash
 cp config/librechat.yaml /path/to/LibreChat/librechat.yaml
 ```
 
-Create your `.env`:
+Create the environment file:
 
 ```bash
 cp config/.env.example /path/to/LibreChat/.env
 ```
 
-Set this value in `.env`:
+Edit `.env` and set:
 
 ```bash
 CONFIG_PATH=/path/to/LibreChat/librechat.yaml
-```
-
-Keep this value unless you change the local tunnel port:
-
-```bash
 VAST_GPU_BASE_URL=http://127.0.0.1:8080/v1
 ```
 
@@ -96,24 +81,24 @@ Generate fresh secrets for the placeholder values:
 openssl rand -hex 32
 ```
 
-## 2. Start llama.cpp On The GPU
+### 2. Start The Model On Vast.ai
 
-Copy `scripts/remote-llama-server-template.sh` to the Vast.ai GPU, then run:
+Copy `scripts/remote-llama-server-template.sh` to the GPU machine, then run it there:
 
 ```bash
 MODEL_HF='Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF:Q4_K_M' \
 ./remote-llama-server-template.sh
 ```
 
-By default this starts `llama-server` on the GPU at:
+By default, the model server listens privately on the GPU:
 
 ```bash
 127.0.0.1:18080
 ```
 
-## 3. Start The SSH Tunnel
+### 3. Start The Local SSH Tunnel
 
-On your local machine, run:
+Run this on your local machine:
 
 ```bash
 VAST_HOST=<vast-host-or-ip> \
@@ -128,18 +113,22 @@ This maps:
 local 127.0.0.1:8080 -> remote 127.0.0.1:18080
 ```
 
-## 4. Start LibreChat
+### 4. Start LibreChat
 
-Start LibreChat normally for your install.
+Start LibreChat normally for your install and open:
+
+```bash
+http://127.0.0.1:3080
+```
 
 If you use the included macOS LaunchAgent examples, replace:
 
 - `/Users/YOUR_USER`
 - `YOUR_NODE_VERSION`
 
-Then install or load the plists from `launchagents/`.
+Then load the plists from `launchagents/`.
 
-## Change GPUs Later
+## Switching GPUs
 
 Keep LibreChat pointed at:
 
@@ -147,7 +136,7 @@ Keep LibreChat pointed at:
 http://127.0.0.1:8080/v1
 ```
 
-Then reconnect the tunnel with the new Vast.ai machine details:
+When you rent a different Vast.ai machine, just reconnect the tunnel:
 
 ```bash
 VAST_HOST=<new-vast-host-or-ip> \
@@ -157,9 +146,9 @@ VAST_SSH_PORT=<new-vast-ssh-port> \
 
 No LibreChat config change is needed if the local port stays `8080`.
 
-## Change Models Later
+## Switching Models
 
-Start the remote server with a different Hugging Face GGUF reference:
+Start the remote server with a different GGUF reference:
 
 ```bash
 MODEL_HF='<huggingface-repo-or-file-ref>' \
@@ -174,7 +163,27 @@ models:
     - '<huggingface-repo-or-file-ref>'
 ```
 
-Restart LibreChat after changing config.
+Restart LibreChat after changing the config.
+
+## Web Search
+
+The included search proxy exposes a small SearXNG-compatible endpoint:
+
+```bash
+http://127.0.0.1:3090/search
+```
+
+`config/librechat.yaml` points LibreChat web search at:
+
+```bash
+SEARXNG_INSTANCE_URL=http://127.0.0.1:3090
+```
+
+## Agent Skill
+
+The `agent-skills/vast-gpu-librechat` folder contains a reusable `SKILL.md` workflow for compatible coding assistants.
+
+Use it when you want an assistant to reconnect a new Vast.ai GPU, swap a model, restart services, or troubleshoot this setup without rediscovering the whole architecture.
 
 ## Health Checks
 
@@ -200,5 +209,6 @@ curl 'http://127.0.0.1:3090/search?q=test&format=json'
 
 - Do not commit a real `.env`.
 - Do not commit SSH private keys.
-- Do not expose `llama-server` publicly unless you add authentication and understand the risk.
-- Prefer binding the remote model server to `127.0.0.1` and accessing it only through SSH.
+- Bind `llama-server` to `127.0.0.1` on the GPU.
+- Access the model server through SSH instead of exposing it publicly.
+- Add authentication and rate limits before any public deployment.
